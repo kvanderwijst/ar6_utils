@@ -128,6 +128,7 @@ def line_continuous_error_bars(
         layout=_fig2.layout,
     )
 
+
 def add_funnel(
     fig: go.Figure,
     df: pd.DataFrame,
@@ -179,7 +180,6 @@ def add_funnel(
     return fig
 
 
-
 def left_align_subplot_titles(fig):
     """Should be called directly after calling `make_subplots(...)`,
     otherwise new annotations besides the subtitles can be created."""
@@ -188,6 +188,6 @@ def left_align_subplot_titles(fig):
         ann.update(x=x, xanchor="left", align="left")
 
 
-from . import geodata
+from ar6_utils import geodata
 
 MACROREGIONS_GEO = json.loads(pkg_resources.read_text(geodata, "macroregions.json"))
