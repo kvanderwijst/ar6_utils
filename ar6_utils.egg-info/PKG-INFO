@@ -1,0 +1,13 @@
+Metadata-Version: 2.1
+Name: ar6-utils
+Version: 0.1.0
+Summary: Useful for handling AR6 database files in IAMC format, and provides AR6 plot style
+Home-page: UNKNOWN
+Author: Kaj-Ivar van der Wijst
+Author-email: k.i.vanderwijst@gmail.com
+License: LICENSE.txt
+Platform: UNKNOWN
+License-File: LICENSE.txt
+
+# TODO
+
