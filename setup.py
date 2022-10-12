@@ -11,4 +11,5 @@ setup(
     description="Useful for handling AR6 database files in IAMC format, and provides AR6 plot style",
     long_description=open("README.md").read(),
     install_requires=["pandas", "openpyxl"],
+    include_package_data=True,
 )

@@ -188,6 +188,6 @@ def left_align_subplot_titles(fig):
         ann.update(x=x, xanchor="left", align="left")
 
 
-from ar6_utils import geodata
+from . import geodata
 
 MACROREGIONS_GEO = json.loads(pkg_resources.read_text(geodata, "macroregions.json"))
