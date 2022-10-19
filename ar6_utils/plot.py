@@ -104,7 +104,13 @@ pio.templates["ipcc"] = go.layout.Template(
 
 
 def line_continuous_error_bars(
-    df, groupby_columns, value_col="Value", q_low=0.05, q_high=0.95, **kwargs
+    df,
+    groupby_columns,
+    value_col="Value",
+    q_low=0.05,
+    q_high=0.95,
+    with_median=True,
+    **kwargs,
 ):
     grouped_df = df.groupby(groupby_columns)[value_col]
 
@@ -122,6 +128,8 @@ def line_continuous_error_bars(
     )
 
     _fig2 = px.line(grouped_df.quantile(0.5).reset_index(), **kwargs)
+    if not with_median:
+        _fig2.update_traces(x=[None], y=[None])
 
     return go.Figure(
         _fig1.update_traces(line_width=0, showlegend=False).data + _fig2.data,
