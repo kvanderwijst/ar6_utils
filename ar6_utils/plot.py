@@ -199,3 +199,18 @@ def left_align_subplot_titles(fig):
 from . import geodata
 
 MACROREGIONS_GEO = json.loads(pkg_resources.read_text(geodata, "macroregions.json"))
+
+def write_svg(fig, filename, **kwargs):
+    fig.write_image(filename, **kwargs)
+
+    # Read in exported SVG:
+    with open(filename, "r") as file:
+        filedata = file.read()
+    # Replace font with font-family and font-stretch properties
+    filedata = filedata.replace(
+        "font-family: 'Frutiger LT Pro Condensed'",
+        "font-stretch: condensed; font-family: 'Frutiger LT Pro'",
+    ).replace("vector-effect: non-scaling-stroke;", "")
+    # Write new SVG data:
+    with open(filename, "w") as file:
+        file.write(filedata)
