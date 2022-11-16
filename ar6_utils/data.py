@@ -110,7 +110,7 @@ def create_variable(
     combined.insert(4, "Variable", new_name)
 
     if append:
-        return df.append(combined)
+        return pd.concat([df, combined])
     return combined
 
 

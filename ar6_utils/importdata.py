@@ -94,18 +94,24 @@ def _create_extra_variables(data):
     except KeyError:
         pass
     # Energy supply -- positive
-    try:
-        data = create_variable(
-            data,
-            "Emissions|CO2|Energy|Supply",
-            "Carbon Sequestration|BECCS+DAC",
-            "Emissions|CO2|Energy|Supply Gross Positive",
-            "+",
-            default_var1=0.0,
-            default_var2=0.0,
-        )
-    except KeyError:
-        pass
+    # try:
+    #     data = create_variable(
+    #         data,
+    #         "Emissions|CO2|Energy|Supply",
+    #         "Carbon Sequestration|BECCS+DAC",
+    #         "Emissions|CO2|Energy|Supply Gross Positive",
+    #         "+",
+    #         default_var1=0.0,
+    #         default_var2=0.0,
+    #     )
+    # except KeyError:
+    #     pass
+
+    data = create_variable(data, 'Emissions|CO2|Energy|Demand|Residential and Commercial', 'Emissions|CO2|Energy|Demand|Transportation', 'Buildings+Transport', '+', default_var1=0.0, default_var2=0.0)
+    data = create_variable(data, 'Buildings+Transport', 'Industry', 'Buildings+Transport+Industry', '+', default_var1=0.0, default_var2=0.0)
+    data = create_variable(data, 'Buildings+Transport+Industry', 'Carbon Sequestration|BECCS+DAC', 'Buildings+Transport+Industry-Carbon Sequestration', '-', default_var1=0.0, default_var2=0.0)
+    data = create_variable(data, 'Emissions|CO2|Energy and Industrial Processes', 'Buildings+Transport+Industry-Carbon Sequestration', 'Emissions|CO2|Energy|Supply Gross Positive', '-')
+
     # Non-CO2 emissions
     try:
         data = create_variable(
