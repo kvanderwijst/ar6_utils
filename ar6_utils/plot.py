@@ -66,7 +66,11 @@ pio.templates["ipcc"] = go.layout.Template(
                 "x": 0.01,
             },
             plot_bgcolor="#F5F5F5",
-            font={"family": FRUTIGER, "size": pt_to_px(7), "color": "#25292b",},
+            font={
+                "family": FRUTIGER,
+                "size": pt_to_px(7),
+                "color": "#25292b",
+            },
             legend={
                 "font_size": pt_to_px(7),
                 "title_font_size": pt_to_px(7),
@@ -110,12 +114,14 @@ def line_continuous_error_bars(
     q_low=0.05,
     q_high=0.95,
     with_median=True,
+    output_dict=None,
+    output_dict_prefix="",
     **kwargs,
 ):
     grouped_df = df.groupby(groupby_columns)[value_col]
 
-    low_high = (
-        grouped_df.quantile([q_low, q_high])
+    quantiles = (
+        grouped_df.quantile([q_low, 0.5, q_high])
         .unstack(level=-1)
         .rename_axis(columns="Quantile")
         .stack()
@@ -123,13 +129,26 @@ def line_continuous_error_bars(
         .reset_index()
     )
 
-    _fig1 = px.line(low_high, line_group="Quantile", **kwargs).for_each_trace(
+    _fig1 = px.line(
+        quantiles[quantiles["Quantile"].isin([q_low, q_high])],
+        line_group="Quantile",
+        render_mode="svg",
+        **kwargs,
+    ).for_each_trace(
         lambda t: t.update(fill="tonexty" if str(q_high) in t.hovertemplate else "none")
     )
 
-    _fig2 = px.line(grouped_df.quantile(0.5).reset_index(), **kwargs)
+    _fig2 = px.line(
+        quantiles[quantiles["Quantile"] == 0.5], render_mode="svg", **kwargs
+    )
     if not with_median:
         _fig2.update_traces(x=[None], y=[None])
+
+    if output_dict is not None:
+        new_output = {
+            f"{output_dict_prefix}_{col}": values for col, values in quantiles.items()
+        }
+        output_dict.update(new_output)
 
     return go.Figure(
         _fig1.update_traces(line_width=0, showlegend=False).data + _fig2.data,
@@ -148,6 +167,8 @@ def add_funnel(
     row=1,
     col=1,
     showlegend=True,
+    output_dict=None,
+    output_dict_prefix="",
     **kwargs,
 ):
     """
@@ -157,12 +178,17 @@ def add_funnel(
 
     with_range = col_low is not None and col_high is not None
 
+    new_output = {}
+
     if with_range:
         y_values_low = df[col_low]
         y_values_high = df[col_high]
 
         y_values = np.concatenate([y_values_low, y_values_high[::-1]])
         x_values_combined = np.concatenate([x_values, x_values[::-1]])
+        new_output["range_x"] = x_values.values
+        new_output["range_low_y"] = y_values_low.values
+        new_output["range_high_y"] = y_values_high.values
 
         trace = go.Scatter(
             x=x_values_combined,
@@ -176,14 +202,23 @@ def add_funnel(
         fig.add_trace(trace, row=row, col=col)
 
     if col_median is not None:
+        y_values_median = df[col_median]
         trace = go.Scatter(
             x=x_values,
-            y=df[col_median],
+            y=y_values_median,
             line={"width": 2, "color": color},
             mode="lines",
             showlegend=False if with_range else showlegend,
         ).update(**kwargs)
         fig.add_trace(trace, row=row, col=col)
+        new_output["median_x"] = x_values.values
+        new_output["median_y"] = y_values_median.values
+
+    if output_dict is not None:
+        # Update the output dict in place
+        output_dict.update(
+            {f"{output_dict_prefix}_{key}": value for key, value in new_output.items()}
+        )
 
     return fig
 
@@ -199,6 +234,7 @@ def left_align_subplot_titles(fig):
 from . import geodata
 
 MACROREGIONS_GEO = json.loads(pkg_resources.read_text(geodata, "macroregions.json"))
+
 
 def write_svg(fig, filename, **kwargs):
     fig.write_image(filename, **kwargs)
