@@ -7,7 +7,6 @@ from .data import get_interp, get_interp_indexed
 
 
 class Var:
- 
     index_columns = ["Name"]
 
     def __init__(
@@ -22,7 +21,7 @@ class Var:
         default=None,
         select_unit=None,
         unit="",
-        make_positive=False, # Take absolute value of all values
+        make_positive=False,  # Take absolute value of all values
     ):
         self.data = data
         self.scenarios = scenarios
@@ -34,10 +33,12 @@ class Var:
         if variable is not None and values is not None:
             raise Exception("variable and values cannot both be defined")
 
+        self._YEARS = list(self.data.filter(regex="\d{4}").columns)
+
         if variable is not None:
             self._variable = variable
             if year is None:
-                year = YEARS
+                year = self._YEARS
             to_series = not isinstance(year, (tuple, list))
             year = _to_list(year, to_str=False)
             self._year = year[0] if to_series else year
@@ -48,8 +49,8 @@ class Var:
             #    - Years that need to be interpolated
             # - Strings, corresponding to meta columns containing a year value for each scenario
             years_numbers = [y for y in year if isinstance(y, (int, float))]
-            existing_years = list(set(years_numbers).intersection(set(YEARS)))
-            interp_years = list(set(years_numbers) - set(YEARS))
+            existing_years = list(set(years_numbers).intersection(set(self._YEARS)))
+            interp_years = list(set(years_numbers) - set(self._YEARS))
             years_meta_columns = list(set(year) - set(years_numbers))
 
             # First get years that already exist
@@ -86,7 +87,7 @@ class Var:
             # Then interpolate year values from meta columns (e.g. net-zero columns)
             for column in years_meta_columns:
                 self._values[column] = self._interp_value_year_from_meta_column(
-                    selection[YEARS], column
+                    selection[self._YEARS], column
                 )
 
             self._values = self._values[self._year]
@@ -109,15 +110,20 @@ class Var:
             self._values = abs(self._values)
 
     def select(
-        self, meta: Dict = None, value=None, ip=None, ssp=None, long_format=True,
+        self,
+        meta: Dict = None,
+        value=None,
+        ip=None,
+        ssp=None,
+        long_format=True,
     ):
         """
         Filter the resulting values dataframe
 
         (a) Use `meta` to pass a dictionary with meta-columns as keys. The values can be "all" or any/subset of the values of that column.
-            
+
             Example: datavar("Emissions|CO2").select({"Category": ["C1", "C2"]})
-            
+
             ## Selects the CO2 emission paths of all scenarios with climate category C1 or C2
 
 
@@ -125,9 +131,9 @@ class Var:
         - value:    a list of values or a range using pd.Interval
 
             Example: datavar("Emissions|CO2", 2050).select(value=pd.Interval(0, 20))
-            
+
             ## Selects all scenarios with CO2 emissions in 2050 between 0 and 20 GtCO2
-            
+
         - ip:       None, "all" or any/subset of [CurPol, ModAct, GS, Neg, Ren, LD, SP]
         - ssp:      None, "all" or any/subset of [SSP1-19, SSP1-26, SSP4-34, SSP2-45, SSP4-60, SSP3-70, SSP5-85]
 
@@ -145,7 +151,6 @@ class Var:
                 selection = selection[selection.index.isin(values)]
 
             else:
-
                 # Check if column exists
                 if column not in selection.columns:
                     raise KeyError(
@@ -272,7 +277,6 @@ class Var:
         return self._check_and_harmonise_inputs_columns(other)
 
     def _check_and_harmonise_inputs_columns(self, other):
-
         y1, y2 = self._year, other._year
 
         self_values = self._values
@@ -333,7 +337,9 @@ class Var:
 
     def __add__(self, other):
         self_values, other_values = Var._check_and_harmonise_inputs(self, other)
-        new_values = self_values.add(other_values, fill_value=getattr(other, "default", None))
+        new_values = self_values.add(
+            other_values, fill_value=getattr(other, "default", None)
+        )
         other_unit = getattr(other, "unit", "[?]")
         if isinstance(other, (int, float)) or other_unit == self.unit:
             new_unit = self.unit
@@ -353,7 +359,9 @@ class Var:
 
     def __sub__(self, other):
         self_values, other_values = Var._check_and_harmonise_inputs(self, other)
-        new_values = self_values.sub(other_values, fill_value=getattr(other, "default", None))
+        new_values = self_values.sub(
+            other_values, fill_value=getattr(other, "default", None)
+        )
         other_unit = getattr(other, "unit", "[?]")
         if isinstance(other, (int, float)) or other_unit == self.unit:
             new_unit = self.unit
@@ -377,7 +385,9 @@ class Var:
 
     def __rsub__(self, other):
         self_values, other_values = Var._check_and_harmonise_inputs(self, other)
-        new_values = self_values.rsub(other_values, fill_value=getattr(other, "default", None))
+        new_values = self_values.rsub(
+            other_values, fill_value=getattr(other, "default", None)
+        )
         other_unit = getattr(other, "unit", "[?]")
         if isinstance(other, (int, float)) or other_unit == self.unit:
             new_unit = self.unit
@@ -398,7 +408,9 @@ class Var:
 
     def __mul__(self, other):
         self_values, other_values = Var._check_and_harmonise_inputs(self, other)
-        new_values = self_values.mul(other_values, fill_value=getattr(other, "default", None))
+        new_values = self_values.mul(
+            other_values, fill_value=getattr(other, "default", None)
+        )
         other_unit = getattr(other, "unit", "[?]")
         if isinstance(other, (int, float)):
             new_unit = self.unit
@@ -417,7 +429,7 @@ class Var:
 
     def __pow__(self, other):
         self_values, other_values = Var._check_and_harmonise_inputs(self, other)
-        new_values = self_values ** other_values
+        new_values = self_values**other_values
         other_unit = getattr(other, "unit", "[?]")
         if isinstance(other, (int, float)):
             new_unit = f"({self.unit} ** {other})"
@@ -434,7 +446,9 @@ class Var:
 
     def __truediv__(self, other):
         self_values, other_values = Var._check_and_harmonise_inputs(self, other)
-        new_values = self_values.truediv(other_values, fill_value=getattr(other, "default", None))
+        new_values = self_values.truediv(
+            other_values, fill_value=getattr(other, "default", None)
+        )
         other_unit = getattr(other, "unit", "[?]")
         if isinstance(other, (int, float)):
             new_unit = self.unit
@@ -453,7 +467,9 @@ class Var:
 
     def __rtruediv__(self, other):
         self_values, other_values = Var._check_and_harmonise_inputs(self, other)
-        new_values = self_values.rtruediv(other_values, fill_value=getattr(other, "default", None))
+        new_values = self_values.rtruediv(
+            other_values, fill_value=getattr(other, "default", None)
+        )
         other_unit = getattr(other, "unit", "[?]")
         if isinstance(other, (int, float)):
             new_unit = self.unit

@@ -250,3 +250,64 @@ def write_svg(fig, filename, **kwargs):
     # Write new SVG data:
     with open(filename, "w") as file:
         file.write(filedata)
+
+
+def add_grouped_bar(
+    fig,
+    grouped_xvalues: dict,
+    yvalues,
+    row=1,
+    col=1,
+    group_dx=1.8,
+    item_dx=1,
+    group_label_y=-0.15,
+    **kwargs,
+):
+    """
+    Usage:
+    add_grouped_bar(
+        fig,
+        {"Group1": ["Scen1"], "Group2": ["Scen1", "Scen2", "Scen3"], "Group3": ["Scen1", "Scen2", "Scen3"]},
+        [y1, y2, y3, y4, y5, y6, y7]
+    )
+
+    Options:
+    - group_dx: spacing between two groups
+    - item_dx: spacing between items within a group
+    - group_label_y: y-position (relative to y-axis domain) below the x-axis for the group label
+
+    """
+    x_positions = []
+    all_x_labels = []
+    group_x_labels = {}
+    x_curr = 0
+    for group_label, x_labels in grouped_xvalues.items():
+        new_x = [x_curr + j * item_dx for j in range(len(x_labels))]
+        x_positions += new_x
+        all_x_labels += x_labels
+        group_x_labels[group_label] = np.mean(new_x)
+        x_curr = new_x[-1] + group_dx
+
+    # Add the values
+    fig.add_bar(x=x_positions, y=yvalues, row=row, col=col, **kwargs)
+
+    # Add the x ticks
+    fig.update_xaxes(row=row, col=col, tickvals=x_positions, ticktext=all_x_labels)
+    # Add secondary x ticks for the groups
+    subplot = fig.get_subplot(row, col)
+    xref = subplot.yaxis["anchor"]
+    yref = subplot.xaxis["anchor"]
+    for label, x in group_x_labels.items():
+        fig.add_annotation(
+            x=x,
+            y=group_label_y,
+            xref=xref,
+            yref=f"{yref} domain",
+            bgcolor="#FFF",
+            ax=0,
+            ay=0,
+            showarrow=False,
+            text=label,
+        )
+
+    return fig

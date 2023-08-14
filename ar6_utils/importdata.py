@@ -19,21 +19,34 @@ VETTING_COL = "Vetting_historical"
 
 
 def import_data(
-    snapshot_folder, data_filename, meta_filename=None, dt=5, extra=True, onlyworld=True
+    snapshot_folder,
+    data_filename,
+    meta_filename=None,
+    dt=5,
+    extra=True,
+    onlyworld=True,
+    convert_units=True,
+    startyear=2010,
+    endyear=2100,
 ):
     # Import the normal data file
     print("Importing data...")
     data = prepare_data(
-        os.path.join(snapshot_folder, data_filename), dt=dt, onlyworld=onlyworld
+        os.path.join(snapshot_folder, data_filename),
+        dt=dt,
+        onlyworld=onlyworld,
+        startyear=startyear,
+        endyear=endyear,
     )
 
     if extra:
         print("Creating extra variables...")
         data = _create_extra_variables(data)
 
-    print("Converting to standard units...")
     # Convert units to GtCO2 etc
-    _convert_units(data)
+    if convert_units:
+        print("Converting to standard units...")
+        _convert_units(data)
 
     # Create scenarios dataframe
     if meta_filename is not None:
@@ -49,7 +62,6 @@ def import_data(
 
 
 def _create_extra_variables(data):
-
     # Energy supply = 'Emissions|CO2|Energy|Supply' +  'Carbon Sequestration|CCS|Biomass'
     # data = create_variable(data, 'Emissions|CO2|Energy|Supply', 'Carbon Sequestration|CCS|Biomass', 'Energy Supply', '+')
 
@@ -107,10 +119,40 @@ def _create_extra_variables(data):
     # except KeyError:
     #     pass
 
-    data = create_variable(data, 'Emissions|CO2|Energy|Demand|Residential and Commercial', 'Emissions|CO2|Energy|Demand|Transportation', 'Buildings+Transport', '+', default_var1=0.0, default_var2=0.0)
-    data = create_variable(data, 'Buildings+Transport', 'Industry', 'Buildings+Transport+Industry', '+', default_var1=0.0, default_var2=0.0)
-    data = create_variable(data, 'Buildings+Transport+Industry', 'Carbon Sequestration|BECCS+DAC', 'Buildings+Transport+Industry-Carbon Sequestration', '-', default_var1=0.0, default_var2=0.0)
-    data = create_variable(data, 'Emissions|CO2|Energy and Industrial Processes', 'Buildings+Transport+Industry-Carbon Sequestration', 'Emissions|CO2|Energy|Supply Gross Positive', '-')
+    data = create_variable(
+        data,
+        "Emissions|CO2|Energy|Demand|Residential and Commercial",
+        "Emissions|CO2|Energy|Demand|Transportation",
+        "Buildings+Transport",
+        "+",
+        default_var1=0.0,
+        default_var2=0.0,
+    )
+    data = create_variable(
+        data,
+        "Buildings+Transport",
+        "Industry",
+        "Buildings+Transport+Industry",
+        "+",
+        default_var1=0.0,
+        default_var2=0.0,
+    )
+    data = create_variable(
+        data,
+        "Buildings+Transport+Industry",
+        "Carbon Sequestration|BECCS+DAC",
+        "Buildings+Transport+Industry-Carbon Sequestration",
+        "-",
+        default_var1=0.0,
+        default_var2=0.0,
+    )
+    data = create_variable(
+        data,
+        "Emissions|CO2|Energy and Industrial Processes",
+        "Buildings+Transport+Industry-Carbon Sequestration",
+        "Emissions|CO2|Energy|Supply Gross Positive",
+        "-",
+    )
 
     # Non-CO2 emissions
     try:
@@ -147,7 +189,6 @@ def _create_extra_variables(data):
 
 
 def _convert_units(data):
-
     for df, columns in [(data, YEARS)]:
         # Convert unit Mt CO2/yr to Gt CO2/yr
         df.loc[df["Unit"] == "Mt CO2/yr", columns] *= 0.001

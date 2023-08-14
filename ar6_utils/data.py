@@ -5,7 +5,7 @@ import pandas as pd
 from .constants import NO_NET_ZERO, YEARS
 
 
-def prepare_data(database, startyear=2010, dt=5, onlyworld=True):
+def prepare_data(database, startyear=2010, endyear=2100, dt=5, onlyworld=True):
     if ".xls" in database:
         data_raw = pd.read_excel(database)
     else:
@@ -16,7 +16,7 @@ def prepare_data(database, startyear=2010, dt=5, onlyworld=True):
     data = data_raw.loc[
         :,
         ["Model", "Scenario", "Region", "Variable", "Unit"]
-        + [str(y) for y in np.arange(startyear, 2101, dt)],
+        + [str(y) for y in np.arange(startyear, endyear + 1, dt)],
     ]
 
     # Choose only region == World
@@ -27,16 +27,16 @@ def prepare_data(database, startyear=2010, dt=5, onlyworld=True):
     data.insert(2, "Name", data["Model"] + " " + data["Scenario"])
 
     # Interpolating missing 5 years columns
-    interpolate_missing_5years(data)
+    interpolate_missing_5years(data, startyear=startyear + 5, endyear=endyear + 5)
 
-    years = [str(y) for y in np.arange(startyear, 2101, 5)]
+    years = [str(y) for y in np.arange(startyear, endyear + 1, 5)]
     return data[
         ["Name", "Model", "Scenario", "Region", "Variable", "Unit"] + years
     ].rename(columns={y: int(y) for y in years})
 
 
-def interpolate_missing_5years(data):
-    for year in range(2015, 2105, 10):
+def interpolate_missing_5years(data, startyear, endyear):
+    for year in range(startyear, endyear, 10):
         if str(year) not in data.columns:
             data[str(year)] = np.nan
         data.loc[data[str(year)].isna(), str(year)] = data.loc[
@@ -115,7 +115,12 @@ def create_variable(
 
 
 def add_variables(
-    df, vars, new_name, default=None, overwrite_unit=None, append=True,
+    df,
+    vars,
+    new_name,
+    default=None,
+    overwrite_unit=None,
+    append=True,
 ):
     td_all = df.loc[df["Variable"].isin(vars)].copy()
     if overwrite_unit is not None:
@@ -146,9 +151,7 @@ def calc_netzero(scenarios, data, variable, col_name, limit=0):
     above_limit = _selection.loc[_selection[2100] > limit, "Name"]
     scenarios.loc[scenarios.index.isin(above_limit), col_name] = NO_NET_ZERO
 
-    _selection_has_negative_year = (_selection.loc[:, 2020:2100] <= limit).any(
-        axis=1
-    )
+    _selection_has_negative_year = (_selection.loc[:, 2020:2100] <= limit).any(axis=1)
     _selection = _selection[_selection_has_negative_year].set_index("Name")
     for name, row in _selection.iterrows():
         if row.loc[2020:2100].isnull().any():
@@ -233,4 +236,3 @@ def get_single(data, name, variable):
         return None
 
     return selection.set_index(["Name", "Variable"]).iloc[0].loc[YEARS]
-
