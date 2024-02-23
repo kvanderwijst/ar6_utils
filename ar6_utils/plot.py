@@ -24,7 +24,7 @@ SVG_SCALE = (PAGE_WIDTH_MM / 25.4) / (
     PLOTLY_WIDTH_PX / SVG_DPI
 )  # page width in inch (div. by 25.4)
 
-FRUTIGER = '"Frutiger LT Pro Condensed", "Open Sans", verdana, arial, sans-serif'
+FRUTIGER = '"Frutiger LT Pro Condensed", "FrutigerLTPro-Condensed", "Open Sans", verdana, arial, sans-serif'
 
 IPCC_COLORS = [
     "#5492cd",
@@ -85,6 +85,7 @@ pio.templates["ipcc"] = go.layout.Template(
                 title_standoff=0,
                 gridcolor="#d0d0d0",
                 gridwidth=pt_to_px(0.25),
+                showgrid=False,
                 zerolinecolor="#8e8e8d",
                 zerolinewidth=2,
                 ticks="",
