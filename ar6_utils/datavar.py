@@ -81,8 +81,12 @@ class Var:
             # Then interpolate all other years:
             for y in interp_years:
                 self._values[y] = get_interp(
-                    selection_data, None, [variable], float(y), self.index_columns
-                )[0].T.iloc[:, 0]
+                    selection_data,
+                    None,
+                    _to_list(variable),
+                    float(y),
+                    self.index_columns,
+                )[0]
 
             # Then interpolate year values from meta columns (e.g. net-zero columns)
             for column in years_meta_columns:
@@ -239,10 +243,12 @@ class Var:
             subset_values = subset_values.to_frame()
 
         index_columns = list(subset_values.index.names)
-        # Merge with extra columns
-        subset_values = subset_values.merge(
-            selection[extra_columns], left_index=True, right_index=True, how="left"
-        ).reset_index()
+        if len(extra_columns) > 0:
+            # Merge with extra columns
+            subset_values = subset_values.merge(
+                selection[extra_columns], left_index=True, right_index=True, how="left"
+            )
+        subset_values = subset_values.reset_index()
         if len(extra_columns) > 0:
             subset_values = subset_values.sort_values(extra_columns)
         subset_values = subset_values.set_index(
