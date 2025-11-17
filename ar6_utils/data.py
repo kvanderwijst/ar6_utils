@@ -184,21 +184,21 @@ def calc_netzero(scenarios, data, variable, col_name, limit=0):
 def get_interp(data, name, variables, year, index_columns=None):
     if index_columns is None:
         index_columns = ["Name"]
-        if len(variables) > 1:
-            index_columns = index_columns + ["Variable"]
     if name is None:
         selection = data
     else:
         if isinstance(name, str):
             name = [name]
         selection = data[data["Name"].isin(name)]
-    row = selection[selection["Variable"].isin(variables)].set_index(index_columns)
+    row = selection[selection["Variable"].isin(variables)].set_index(
+        ["Variable"] + index_columns
+    )
     year0 = int((year // 5) * 5)
     year1 = year0 + 5
     v0 = row[year0]
     v1 = row[year1]
     p = (year - year0) / (year1 - year0)
-    interp = v0 * (1 - p) + v1 * p  # .unstack(index_columns)
+    interp = (v0 * (1 - p) + v1 * p).unstack(index_columns)
     if name is not None and len(name) == 1:
         interp = interp.iloc[:, 0]
     return interp, year0, year1

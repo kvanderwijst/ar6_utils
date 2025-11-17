@@ -28,6 +28,7 @@ def import_data(
     convert_units=True,
     startyear=2010,
     endyear=2100,
+    fix_imp_data=True,
 ):
     # Import the normal data file
     print("Importing data...")
@@ -38,6 +39,9 @@ def import_data(
         startyear=startyear,
         endyear=endyear,
     )
+
+    if fix_imp_data:
+        data = _fix_imp_ld_neg(data)
 
     if extra:
         print("Creating extra variables...")
@@ -58,6 +62,44 @@ def import_data(
         print("Finished.")
         return data, scenarios
     print("Finished.")
+    return data
+
+
+def _fix_imp_ld_neg(data):
+
+    def get(name, variable, values_only=True):
+        _select = data[(data["Name"] == name) & (data["Variable"] == variable)].copy()
+        if len(_select) == 0:
+            return 0.0
+        if len(_select) > 1:
+            print(f"Multiple entries for {name} - {variable}")
+        _select.fillna(0.0, inplace=True)
+        if values_only:
+            return _select.iloc[0].loc[2010:]
+        return _select.iloc[0]
+
+    name_neg = "COFFEE 1.1 EN_NPi2020_400f_lowBECCS"
+    extra1 = get(name_neg, "Primary Energy", False)
+    extra1.loc[2010:] = get(name_neg, "Primary Energy|Biomass|Modern|w/ CCS") + get(
+        name_neg, "Primary Energy|Biomass|Modern|w/o CCS"
+    )
+    extra1["Variable"] = "Primary Energy|Biomass|Modern"
+    data = data[
+        ~(
+            (data["Name"] == name_neg)
+            & (data["Variable"] == "Primary Energy|Biomass|Modern")
+        )
+    ]
+
+    extra2 = get(name_neg, "Primary Energy", False)
+    extra2.loc[2010:] = get(name_neg, "Primary Energy|Biomass") - extra1.loc[2010:]
+    extra2["Variable"] = "Primary Energy|Biomass|Traditional"
+
+    name_ld = "MESSAGEix-GLOBIOM 1.0 LowEnergyDemand_1.3_IPCC"
+    extra3 = get(name_ld, "Primary Energy|Biomass", False)
+    extra3["Variable"] = "Primary Energy|Biomass|Modern"
+
+    data = pd.concat([data, pd.DataFrame([extra1, extra2, extra3])])
     return data
 
 
@@ -223,11 +265,11 @@ def _create_metadata_df(data, folder, meta_filename, fast=False):
     meta["Vetted"] = meta[VETTING_COL] == "PASS"
 
     # Add IP column (should be the same as IMP_marker, but this one depends on IP_SCENARIOS variable)
-    meta["IP"] = np.nan
+    meta["IP"] = ""
     for ip in IP_SCENARIOS.values():
         meta.loc[ip.scenario, "IP"] = ip.name
     # Add SSP column
-    meta["SSP"] = np.nan
+    meta["SSP"] = ""
     for ssp in SSP_SCENARIOS.values():
         meta.loc[ssp.scenario, "SSP"] = ssp.name
 
